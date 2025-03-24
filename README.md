@@ -101,10 +101,10 @@ Use `RedisQuery` to search and filter models:
 
 ```csharp
 var query = new RedisQuery<User>("users")
-    .Where(QueryHelper.TextSearch("Name", "John"))
-    .And(QueryHelper.Tag("Email", "user@example.com"));
+    .Where(s => s.Name == "John"))
+    .Where(s => s.Email == "user@example.com"));
 
-var (users, totalCount, totalPages) = await query.GetAsync();
+var (users, totalCount, totalPages) = await query.ToPagedListAsync();
 foreach (var u in users)
 {
     Console.WriteLine($"Found: {u.Name}");
