@@ -1,0 +1,24 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+	  <AssemblyVersion>1.0.0</AssemblyVersion>
+	  <FileVersion>$(AssemblyVersion)</FileVersion>
+	  <Version>$(AssemblyVersion)</Version>
+    <TargetFramework>netstandard2.0</TargetFramework>
+	  <Title>Redis Sharp</Title>
+	  <Authors>Bryly Maeder</Authors>
+	  <Description>
+		  A better, smarter, and faster way to interact with Redis.
+		  While RediJson allows access to JSON models, direct hash calls remain the best way to maximize performance on Redis.
+
+		  Easily perform complex queries using LINQ and partially load/update your models.
+	  </Description>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
+    <PackageReference Include="RediSearchClient" Version="2.4.0" />
+    <PackageReference Include="StackExchange.Redis" Version="2.8.31" />
+  </ItemGroup>
+
+</Project>
