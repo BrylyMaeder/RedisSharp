@@ -103,7 +103,7 @@ Use `RedisQuery` to search and filter models:
 var query = new RedisQuery<User>(s => s.Name == "John" && s => s.Name != "Benny")
     .Where(s => s.Email == "user@example.com"));
 
-var (users, totalCount, totalPages) = await query.ToPagedListAsync();
+var users = await query.ToListAsync();
 foreach (var u in users)
 {
     Console.WriteLine($"Found: {u.Name}");
@@ -113,6 +113,13 @@ typical usage:
 ```csharp
 var myModel = RedisRepository.Query<MyModel>(s => s.MyProperty == xyz).ToListAsync();
 ```
+
+Optional query extensions
+Return the first item (if any) `.FirstOrDefaultAsync()`
+This will select specific properties to be pre-populated by the server `.SelectAsync(s => s.ItemA, s => s.ItemB)`
+`ToPagedList(pageNumber, pageSize)`
+`PagedSelectedAsync(pageNumber, pageSize)`
+`AnyAsync(s => s.IsValid)`
 
 ### Managing Relationships
 
