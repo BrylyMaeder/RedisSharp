@@ -93,7 +93,7 @@ await user.HydrateAsync();
 Console.WriteLine($"User: {user.Name}, Profile Bio: {user.Profile.GetAsync().Result.Bio}");
 ```
 
-Use the `[Hydrate]` attribute to fully load all of it's contents; however be warned that this is a recursive action that also loads it's own nested `IAsyncModels`
+Use the `[Hydrate]` attribute to fully load all of a nested `IAsyncModel`s contents; however be warned that this is a recursive action that also loads it's own nested `IAsyncModels`
 
 ### Querying
 
