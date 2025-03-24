@@ -53,11 +53,6 @@ public class User : IAsyncModel
     public Profile Profile { get; set; }
 
     public string IndexName() => "users";
-
-    public User()
-    {
-        Profile = new AsyncLink<Profile>(this);
-    }
 }
 
 public class Profile : IAsyncModel
