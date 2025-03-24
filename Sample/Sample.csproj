@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk.Web">
+
+  <PropertyGroup>
+    <TargetFramework>net9.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <UserSecretsId>aspnet-Sample-76d83518-6768-4902-af46-1a2211c67882</UserSecretsId>
+  </PropertyGroup>
+
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="9.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="9.*" />
+    <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.*" />
+    <PackageReference Include="MudBlazor" Version="8.*" />
+    <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="3.*" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <ProjectReference Include="..\RedisSharpIdentity\RedisSharpIdentity.csproj" />
+    <ProjectReference Include="..\RedisSharp\RedisSharp.csproj" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <Reference Include="RedisSharp">
+      <HintPath>..\RedisSharpIdentity\bin\Debug\net9.0\RedisSharp.dll</HintPath>
+    </Reference>
+    <Reference Include="RedisSharpIdentity">
+      <HintPath>..\RedisSharpIdentity\bin\Debug\net9.0\RedisSharpIdentity.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+</Project>

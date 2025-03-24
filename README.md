@@ -18,7 +18,7 @@
 Available on Nuget
 
 ```bash
-dotnet add package AsyncRedisModels --version 1.0.0
+dotnet add package Redis.Sharp --version 1.0.0
 ```
 
 ## Getting Started

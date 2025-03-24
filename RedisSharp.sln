@@ -1,9 +1,13 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
-VisualStudioVersion = 17.13.35825.156 d17.13
+VisualStudioVersion = 17.13.35825.156
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisSharp", "RedisSharp\RedisSharp.csproj", "{D856D75E-9CAF-4B7F-ADAB-D9C81072A0DC}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RedisSharpIdentity", "RedisSharpIdentity\RedisSharpIdentity.csproj", "{79C549F1-C437-57CA-18E7-ECC3CBF400AE}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Sample", "Sample\Sample.csproj", "{841E1CDF-ACD1-464E-94B8-50C847FEFF3F}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -15,6 +19,14 @@ Global
 		{D856D75E-9CAF-4B7F-ADAB-D9C81072A0DC}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{D856D75E-9CAF-4B7F-ADAB-D9C81072A0DC}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{D856D75E-9CAF-4B7F-ADAB-D9C81072A0DC}.Release|Any CPU.Build.0 = Release|Any CPU
+		{79C549F1-C437-57CA-18E7-ECC3CBF400AE}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{79C549F1-C437-57CA-18E7-ECC3CBF400AE}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{79C549F1-C437-57CA-18E7-ECC3CBF400AE}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{79C549F1-C437-57CA-18E7-ECC3CBF400AE}.Release|Any CPU.Build.0 = Release|Any CPU
+		{841E1CDF-ACD1-464E-94B8-50C847FEFF3F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{841E1CDF-ACD1-464E-94B8-50C847FEFF3F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{841E1CDF-ACD1-464E-94B8-50C847FEFF3F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{841E1CDF-ACD1-464E-94B8-50C847FEFF3F}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

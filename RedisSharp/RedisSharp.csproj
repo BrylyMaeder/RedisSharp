@@ -13,7 +13,36 @@
 
 		  Easily perform complex queries using LINQ and partially load/update your models.
 	  </Description>
+	  <ApplicationIcon>letter-r.ico</ApplicationIcon>
+	  <PackageReadmeFile>README.md</PackageReadmeFile>
+	  <RepositoryUrl>https://github.com/BrylyMaeder/RedisSharp/</RepositoryUrl>
+	  <RepositoryType>git</RepositoryType>
+	  <PackageProjectUrl>https://github.com/BrylyMaeder/RedisSharp/</PackageProjectUrl>
+	  <PackageTags>Redis, Csharp, Sharp, Query, Search, Linq, Fast</PackageTags>
+	  <PackageReleaseNotes>RedisSharp is a powerful, asynchronous C# library designed to simplify interactions with Redis, providing a robust model-based abstraction layer. Built on top of StackExchange.Redis, it offers features like automatic indexing, model hydration, unique constraints, and flexible querying, making it ideal for managing complex data structures in Redis.</PackageReleaseNotes>
+	  <PackageLicenseFile>LICENSE</PackageLicenseFile>
+	  <PackageId>Redis.Sharp</PackageId>
+	  <PackageIcon>letter-r.png</PackageIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="letter-r.ico" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\LICENSE">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="..\README.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+    <None Include="C:\Users\Bryly\Downloads\letter-r.png">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />

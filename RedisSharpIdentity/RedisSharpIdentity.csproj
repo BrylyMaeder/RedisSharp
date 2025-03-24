@@ -1,0 +1,61 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+	
+	<PropertyGroup>
+		<AssemblyVersion>1.0.0</AssemblyVersion>
+		<FileVersion>$(AssemblyVersion)</FileVersion>
+		<Version>$(AssemblyVersion)</Version>
+		<TargetFramework>net9.0</TargetFramework>
+		<Title>Redis Sharp Identity</Title>
+		<Authors>Bryly Maeder</Authors>
+		<Description>
+			A better, smarter, and faster way to interact with Redis, leveraging RedisSharp.
+		</Description>
+		<ApplicationIcon>letter-r.ico</ApplicationIcon>
+		<PackageReadmeFile>readme.md</PackageReadmeFile>
+		<RepositoryUrl>https://github.com/BrylyMaeder/RedisSharp/</RepositoryUrl>
+		<RepositoryType>git</RepositoryType>
+		<PackageProjectUrl>https://github.com/BrylyMaeder/RedisSharp/</PackageProjectUrl>
+		<PackageTags>Redis, Csharp, Sharp, Query, Search, Linq, Fast</PackageTags>
+		<PackageReleaseNotes>RedisSharpIdentity implements RedisSharp</PackageReleaseNotes>
+		<PackageLicenseFile>LICENSE</PackageLicenseFile>
+		<PackageId>Redis.Sharp.Identity</PackageId>
+		<PackageIcon>letter-r.png</PackageIcon>
+	</PropertyGroup>
+	
+	<ItemGroup>
+	  <Content Include="letter-r.ico" />
+	</ItemGroup>
+	
+	<ItemGroup>
+	  <None Include="..\LICENSE">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	  <None Include="C:\Users\Bryly\Downloads\letter-r.png">
+	    <Pack>True</Pack>
+	    <PackagePath>\</PackagePath>
+	  </None>
+	</ItemGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.AspNetCore.Components.Authorization" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="9.0.3" />
+    <PackageReference Include="Microsoft.Extensions.Identity.Core" Version="9.0.3" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\RedisSharp\RedisSharp.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="RedisSharp">
+      <HintPath>..\RedisSharp\bin\Debug\netstandard2.0\RedisSharp.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="readme.md">
+      <Pack>True</Pack>
+      <PackagePath>\</PackagePath>
+    </None>
+  </ItemGroup>
+
+</Project>
