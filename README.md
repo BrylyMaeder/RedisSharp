@@ -118,6 +118,7 @@ foreach (var u in users)
 typical usage:
 ```csharp
 var myModel = RedisRepository.Query<MyModel>(s => s.MyProperty == xyz).ToListAsync();
+```
 
 ### Managing Relationships
 
