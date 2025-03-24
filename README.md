@@ -100,8 +100,7 @@ Use the `[Hydrate]` attribute to fully load all of a nested `IAsyncModel`s conte
 Use `RedisQuery` to search and filter models:
 
 ```csharp
-var query = new RedisQuery<User>("users")
-    .Where(s => s.Name == "John"))
+var query = new RedisQuery<User>(s => s.Name == "John" && s => s.Name != "Benny")
     .Where(s => s.Email == "user@example.com"));
 
 var (users, totalCount, totalPages) = await query.ToPagedListAsync();
