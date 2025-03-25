@@ -60,19 +60,19 @@ namespace RedisSharp.Helper
                 : typeof(TModel).GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public).Select(p => (RedisValue)p.Name).ToArray();
         }
 
-        internal static void InstantiateNestedModels<TModel>(TModel model, string parentId)
+        internal static void InstantiateNestedModels<TModel>(TModel model) where TModel : IAsyncModel
         {
             foreach (var prop in typeof(TModel).GetProperties(BindingFlags.Public | BindingFlags.Instance))
             {
                 if (!typeof(IAsyncModel).IsAssignableFrom(prop.PropertyType))
                     continue;
 
-                string nestedId = $"{parentId}_{prop.Name}";
+                string nestedId = $"{model.Id}_{prop.Name}";
                 var nestedModel = ModelFactory.CreateEmpty(prop.PropertyType, nestedId);
                 prop.SetValue(model, nestedModel);
 
                 // Recursively instantiate nested properties
-                InstantiateNestedModels(nestedModel, nestedId);
+                InstantiateNestedModels(nestedModel);
             }
         }
 

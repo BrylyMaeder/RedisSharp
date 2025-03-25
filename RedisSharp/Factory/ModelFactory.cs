@@ -1,4 +1,5 @@
 ﻿using RedisSharp.Contracts;
+using RedisSharp.Helper;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -16,6 +17,8 @@ namespace RedisSharp.Factory
             var index = instance.IndexName();
             instance.Id = id.Replace($"{index}:", "");
 
+            ModelHelper.InstantiateNestedModels(instance);
+
             return (TModel)instance;
         }
 
@@ -27,6 +30,8 @@ namespace RedisSharp.Factory
             id = id.Replace($"{index}:", "");
 
             instance.Id = id;
+
+            ModelHelper.InstantiateNestedModels(instance);
 
             return instance;
         }
@@ -57,6 +62,9 @@ namespace RedisSharp.Factory
 
             // Create an instance using the constructor and parameters
             var instance = (IAsyncModel)constructor.Invoke(parameters);
+
+            ModelHelper.InstantiateNestedModels(instance);
+
             return instance;
         }
 

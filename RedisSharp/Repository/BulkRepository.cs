@@ -119,12 +119,6 @@ namespace RedisSharp
                 .Select(id => ModelFactory.Create<TModel>(id))
                 .ToList();
 
-            // Initialize any nested models for each loaded model
-            foreach (var model in models)
-            {
-                ModelHelper.InstantiateNestedModels(model, model.Id);
-            }
-
             // If specific properties were requested, hydrate them
             if (selectors?.Length > 0)
             {
