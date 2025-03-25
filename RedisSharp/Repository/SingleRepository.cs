@@ -13,6 +13,9 @@ namespace RedisSharp
     {
         public static async Task<ModelCreationResult<TModel>> CreateAsync<TModel>(TModel newModel) where TModel : IAsyncModel
         {
+            if (string.IsNullOrEmpty(newModel.Id))
+                newModel.Id = Guid.NewGuid().ToString();
+
             var result = await CreateManyAsync(new List<TModel> { newModel });
 
             return new ModelCreationResult<TModel>

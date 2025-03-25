@@ -107,7 +107,6 @@ namespace RedisSharp.Query
             if (binary.Left is MemberExpression member)
             {
                 left = GetFieldName(member);
-                // Get the IndexType from the IndexedAttribute if present
                 var propertyInfo = member.Member as System.Reflection.PropertyInfo;
                 if (propertyInfo != null)
                 {
@@ -115,14 +114,19 @@ namespace RedisSharp.Query
                     indexType = indexedAttr?.IndexType ?? IndexType.Auto;
                 }
             }
-            else if (binary.Left is ParameterExpression paramExpr)
-            {
-                // Handle case where left side is a parameter
-                left = paramExpr.Name; // Simply use parameter name for comparison
-            }
             else
             {
                 left = ParseExpression(binary.Left, parameter);
+            }
+
+            // ✅ Handle logical AND (`&&`) and OR (`||`)
+            if (binary.NodeType == ExpressionType.AndAlso || binary.NodeType == ExpressionType.OrElse)
+            {
+                string leftExpr = ParseExpression(binary.Left, parameter);
+                string rightExpr = ParseExpression(binary.Right, parameter);
+                return binary.NodeType == ExpressionType.AndAlso
+                    ? "(" + leftExpr + " " + rightExpr + ")"  // Implicit AND
+                    : "(" + leftExpr + " | " + rightExpr + ")"; // Explicit OR
             }
 
             object rightValue = EvaluateExpression(binary.Right, parameter);
@@ -133,89 +137,85 @@ namespace RedisSharp.Query
                 switch (binary.NodeType)
                 {
                     case ExpressionType.Equal:
-                        return $"@{left}:{{{booleanStr}}}";
+                        return "@" + left + ":{" + booleanStr + "}";
                     case ExpressionType.NotEqual:
-                        return $"-@{left}:{{{booleanStr}}}";
+                        return "-@" + left + ":{" + booleanStr + "}";
                 }
             }
             else if (rightValue is DateTime dateTime)
-                rightValue = ToUnixSeconds(dateTime);
-            else if (rightValue is TimeSpan timeSpan)
-                rightValue = (long)timeSpan.TotalSeconds;
-
-            // Check if right side is a ParameterExpression (variable/parameter comparison)
-            if (binary.Right is ParameterExpression paramExprRight)
             {
-                return $"@{left}:{{{paramExprRight.Name}}}";  // Use variable's name in the query
+                rightValue = ToUnixSeconds(dateTime);
+            }
+            else if (rightValue is TimeSpan timeSpan)
+            {
+                rightValue = (long)timeSpan.TotalSeconds;
             }
 
-            // Determine how to format based on IndexType
-            switch (indexType)
+            if (binary.Right is ParameterExpression paramExprRight)
             {
-                case IndexType.Text:
-                case IndexType.Auto when rightValue is string: // Auto defaults to Text for strings
-                    if (rightValue is string textValue)
-                    {
-                        string escapedValue = EscapeValue(textValue);
-                        switch (binary.NodeType)
-                        {
-                            case ExpressionType.Equal:
-                                return $"@{left}:{escapedValue}";
-                            case ExpressionType.NotEqual:
-                                return $"-@{left}:{escapedValue}";
-                            default:
-                                throw new NotSupportedException($"Operator {binary.NodeType} is not supported for Text index");
-                        }
-                    }
-                    break;
+                return "@" + left + ":{" + paramExprRight.Name + "}";
+            }
 
-                case IndexType.Tag:
-                    // Tag search
-                    if (rightValue is string tagValue)
-                    {
-                        string escapedValue = EscapeValue(tagValue);
-                        switch (binary.NodeType)
-                        {
-                            case ExpressionType.Equal:
-                                return $"@{left}:{{{escapedValue}}}";
-                            case ExpressionType.NotEqual:
-                                return $"-@{left}:{{{escapedValue}}}";
-                            default:
-                                throw new NotSupportedException($"Operator {binary.NodeType} is not supported for Tag index");
-                        }
-                    }
-                    break;
+            // ✅ Distinguish between Auto (Text) and Auto (Numeric)
+            bool isNumeric = rightValue is int || rightValue is double || rightValue is float || rightValue is long || rightValue is decimal;
 
-                case IndexType.Numeric:
-                case IndexType.Auto: // Auto defaults to Numeric for non-strings
-                                     // Numeric search
+            if (isNumeric || indexType == IndexType.Numeric)
+            {
+                double numericValue = Convert.ToDouble(rightValue);
+                switch (binary.NodeType)
+                {
+                    case ExpressionType.Equal:
+                        return "@" + left + ":[" + numericValue + " " + numericValue + "]";
+                    case ExpressionType.NotEqual:
+                        return "-@" + left + ":[" + numericValue + " " + numericValue + "]";
+                    case ExpressionType.GreaterThan:
+                        return "@" + left + ":[" + (numericValue + 0.001) + " +inf]";
+                    case ExpressionType.GreaterThanOrEqual:
+                        return "@" + left + ":[" + numericValue + " +inf]";
+                    case ExpressionType.LessThan:
+                        return "@" + left + ":[-inf " + (numericValue - 0.001) + "]";
+                    case ExpressionType.LessThanOrEqual:
+                        return "@" + left + ":[-inf " + numericValue + "]";
+                    default:
+                        throw new NotSupportedException("Operator " + binary.NodeType + " is not supported for numerics");
+                }
+            }
+
+            // ✅ Handle string-based indexes (Text/Tag)
+            if (rightValue is string textValue)
+            {
+                string escapedValue = EscapeValue(textValue);
+
+                if (indexType == IndexType.Text || (indexType == IndexType.Auto && !isNumeric))
+                {
                     switch (binary.NodeType)
                     {
                         case ExpressionType.Equal:
-                            return $"@{left}:[{rightValue}]";
+                            return "@" + left + ":" + escapedValue;
                         case ExpressionType.NotEqual:
-                            return $"-@{left}:[{rightValue}]";
-                        case ExpressionType.GreaterThan:
-                            return $"@{left}:[{Convert.ToDouble(rightValue) + 0.001} +inf]";
-                        case ExpressionType.GreaterThanOrEqual:
-                            return $"@{left}:[{rightValue} +inf]";
-                        case ExpressionType.LessThan:
-                            return $"@{left}:[-inf {Convert.ToDouble(rightValue) - 0.001}]";
-                        case ExpressionType.LessThanOrEqual:
-                            return $"@{left}:[-inf {rightValue}]";
-                        case ExpressionType.AndAlso:
-                        case ExpressionType.And:
-                            return $"({ParseExpression(binary.Left, parameter)} {ParseExpression(binary.Right, parameter)})";
-                        case ExpressionType.OrElse:
-                        case ExpressionType.Or:
-                            return $"({ParseExpression(binary.Left, parameter)} | {ParseExpression(binary.Right, parameter)})";
+                            return "-@" + left + ":" + escapedValue;
                         default:
-                            throw new NotSupportedException($"Operator {binary.NodeType} is not supported");
+                            throw new NotSupportedException("Operator " + binary.NodeType + " is not supported for Text index");
                     }
+                }
+                else if (indexType == IndexType.Tag)
+                {
+                    switch (binary.NodeType)
+                    {
+                        case ExpressionType.Equal:
+                            return "@" + left + ":{" + escapedValue + "}";
+                        case ExpressionType.NotEqual:
+                            return "-@" + left + ":{" + escapedValue + "}";
+                        default:
+                            throw new NotSupportedException("Operator " + binary.NodeType + " is not supported for Tag index");
+                    }
+                }
             }
 
-            throw new NotSupportedException($"Cannot process value {rightValue} with index type {indexType}");
+            throw new NotSupportedException("Cannot process value " + rightValue + " with index type " + indexType);
         }
+
+
 
 
         private string ParseMethodCallExpression(MethodCallExpression methodCall, ParameterExpression parameter)
@@ -230,12 +230,17 @@ namespace RedisSharp.Query
                     var indexType = indexedAttr?.IndexType ?? IndexType.Auto;
 
                     var value = EvaluateExpression(methodCall.Arguments[0], parameter);
+
+                    // 🚨 Null check added 🚨
+                    if (value == null)
+                        throw new ArgumentNullException(nameof(value), "Input value cannot be null");
+
                     if (value is DateTime dt)
                         value = ToUnixSeconds(dt);
                     else if (value is TimeSpan ts)
                         value = (long)ts.TotalSeconds;
 
-                    string stringValue = value?.ToString() ?? "";
+                    string stringValue = value.ToString();
                     string escapedValue = EscapeValue(stringValue);
 
                     if (indexType == IndexType.Text || (indexType == IndexType.Auto && value is string))
@@ -270,6 +275,7 @@ namespace RedisSharp.Query
             }
             throw new NotSupportedException($"Method {methodCall.Method.Name} is not supported");
         }
+
 
         private string GetFieldName(Expression expression)
         {
