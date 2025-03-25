@@ -26,6 +26,23 @@ namespace RedisSharp
             };
         }
 
+        public static async Task<TModel> LoadOrCreateAsync<TModel>(string modelId = "") where TModel : IAsyncModel
+        {
+            if (string.IsNullOrEmpty(modelId))
+            {
+                modelId = Guid.NewGuid().ToString();
+            }
+
+            TModel model = await LoadAsync<TModel>(modelId);
+
+            if (model == null)
+            {
+                var createResult = await CreateAsync<TModel>(modelId);
+                return createResult.Data;
+            }
+
+            return model;
+        }
 
         public static async Task<ModelCreationResult<TModel>> CreateAsync<TModel>(string id = "") where TModel : IAsyncModel
         {
