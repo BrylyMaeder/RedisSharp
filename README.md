@@ -95,6 +95,14 @@ Console.WriteLine($"User: {user.Name}, Profile Bio: {user.Profile.GetAsync().Res
 
 Use the `[Hydrate]` attribute to fully load all of a nested `IAsyncModel`s contents; however be warned that this is a recursive action that also loads it's own nested `IAsyncModels`
 
+### Simple Saving
+Save data effortlessly using:
+```csharp
+myModel.PushAsync(s => s.MyProperty, s => s.MyOtherProperty);
+```
+
+To prevent accidental overwrites with incomplete or uninitialized models, PushAsync without selectors is intentionally restricted, ensuring only specified properties are saved.
+
 ### Querying
 
 Use `RedisQuery` to search and filter models:
