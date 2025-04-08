@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using RedisSharp.Extensions;
 using StackExchange.Redis;
 using RedisSharp.Contracts;
+using RedisSharp.Attributes;
 
 namespace RedisSharp.Helper
 {
@@ -121,6 +122,12 @@ namespace RedisSharp.Helper
 
                 if (typeof(IAsyncModel).IsAssignableFrom(propertyType))
                 {
+                    // Check if the property type implements or has the DescendantAttribute
+                    if (!propertyType.GetCustomAttributes(typeof(DescendantAttribute), false).Any())
+                    {
+                        continue; // Return early if DescendantAttribute is not present
+                    }
+
                     if (propertyType.GetCustomAttributes(typeof(HydrateAttribute), false).Any())
                     {
                         var propertyValue = (IAsyncModel)property.GetValue(model);
@@ -131,6 +138,7 @@ namespace RedisSharp.Helper
                     }
                     continue;
                 }
+
 
                 propertyObjects.Add(propertyObject);
             }

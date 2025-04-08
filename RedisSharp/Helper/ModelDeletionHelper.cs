@@ -1,4 +1,5 @@
-﻿using RedisSharp.Contracts;
+﻿using RedisSharp.Attributes;
+using RedisSharp.Contracts;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;
@@ -15,7 +16,7 @@ namespace RedisSharp.Helper
         {
             List<Task> deletionTasks = new List<Task>();
 
-            if (model == null) new List<Task>();
+            if (model == null) return deletionTasks;
 
             var properties = model.GetType().GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
 
@@ -23,7 +24,8 @@ namespace RedisSharp.Helper
             {
                 var value = property.GetValue(model);
 
-                if (value is IAsyncModel nestedModel)
+                // Only process IAsyncModel if the DescendantAttribute is present
+                if (value is IAsyncModel nestedModel && property.IsDefined(typeof(DescendantAttribute), inherit: true))
                 {
                     deletionTasks.Add(nestedModel.DeleteAsync());
                 }
@@ -41,6 +43,7 @@ namespace RedisSharp.Helper
 
             return deletionTasks;
         }
+
 
         internal static async Task CleanupRedisKeysAsync(IAsyncModel model)
         {

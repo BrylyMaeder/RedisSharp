@@ -7,6 +7,7 @@ using System.Linq;
 using System.Reflection;
 using System.Text;
 using RedisSharp.Util;
+using RedisSharp.Attributes;
 
 namespace RedisSharp.Helper
 {
@@ -62,17 +63,23 @@ namespace RedisSharp.Helper
 
         internal static void InstantiateNestedModels<TModel>(TModel model) where TModel : IAsyncModel
         {
-            foreach (var prop in typeof(TModel).GetProperties(BindingFlags.Public | BindingFlags.Instance))
+            var props = model.GetType().GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public);
+
+            foreach (var prop in props)
             {
-                if (!typeof(IAsyncModel).IsAssignableFrom(prop.PropertyType))
-                    continue;
+                // Only process properties that have the Descendant attribute and are of type IAsyncModel
+                if (prop.GetCustomAttribute<DescendantAttribute>() != null && typeof(IAsyncModel).IsAssignableFrom(prop.PropertyType))
+                {
+                    string nestedId = $"{model.Id}_{prop.Name}";
+                    var nestedModel = ModelFactory.Create(prop.PropertyType, nestedId);
+                    prop.SetValue(model, nestedModel);
 
-                string nestedId = $"{model.Id}_{prop.Name}";
-                var nestedModel = ModelFactory.CreateEmpty(prop.PropertyType, nestedId);
-                prop.SetValue(model, nestedModel);
-
-                // Recursively instantiate nested properties
-                InstantiateNestedModels(nestedModel);
+                    // Recursively instantiate nested models if the nested model is also IAsyncModel
+                    if (nestedModel is IAsyncModel asyncNestedModel)
+                    {
+                        InstantiateNestedModels(asyncNestedModel); // Recursive call
+                    }
+                }
             }
         }
 

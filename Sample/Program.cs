@@ -1,8 +1,9 @@
 ﻿// See https://aka.ms/new-console-template for more information
 using RedisSharp;
+using RedisSharp.Factory;
 using Sample;
 
-RedisSingleton.Initialize("host", port:00000, "password");
+RedisSingleton.Initialize("host", port:1234, "password");
 
 var model = await RedisRepository.LoadAsync<SampleModel>("test");
 if (model == null)
@@ -12,12 +13,14 @@ if (model == null)
     {
         model = result.Data;
     }
-    else 
+    else
     {
         throw new Exception("Couldn't create object.");
     }
 }
 
+
+await model.HydrateAsync();
 model = await RedisRepository.Query<SampleModel>(s => s.Boolean == true).FirstOrDefaultAsync();
 var results = await RedisRepository.Query<SampleModel>(s => s.Number == 5).ToListAsync();
 results = await RedisRepository.Query<SampleModel>(s => s.Username == "James").ToListAsync();
