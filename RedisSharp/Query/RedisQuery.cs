@@ -20,7 +20,7 @@ namespace RedisSharp.Query
 
             return Conditions.Count == 1
                 ? Conditions[0]
-                : $"({string.Join(" ", Conditions)})";
+                : $"'{string.Join(" ", Conditions)}'";
         }
 
         public RedisQuery(string indexName)
@@ -357,9 +357,11 @@ namespace RedisSharp.Query
                         switch (methodCall.Method.Name)
                         {
                             case "Contains":
+                                return $"@{fieldName}:{{\"*{escapedValue}*\"}}";
                             case "StartsWith":
+                                return $"@{fieldName}:{{\"{escapedValue}*\"}}";
                             case "EndsWith":
-                                return $"@{fieldName}:{{{escapedValue}}}"; // Tags don't support wildcards, so treat as exact match
+                                return $"@{fieldName}:{{\"*{escapedValue}\"}}"; // Tags don't support wildcards, so treat as exact match
                             default:
                                 throw new NotSupportedException($"Method {methodCall.Method.Name} is not supported for Tag index");
                         }
