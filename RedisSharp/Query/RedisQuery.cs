@@ -279,9 +279,9 @@ namespace RedisSharp.Query
                     switch (binary.NodeType)
                     {
                         case ExpressionType.Equal:
-                            return "@" + left + ":{" + escapedValue + "}";
+                            return "@" + left + ":{\"" + escapedValue + "\"}";
                         case ExpressionType.NotEqual:
-                            return "-@" + left + ":{" + escapedValue + "}";
+                            return "-@" + left + ":{\"" + escapedValue + "\"}";
                         default:
                             throw new NotSupportedException("Operator " + binary.NodeType + " is not supported for Tag index");
                     }
@@ -361,7 +361,7 @@ namespace RedisSharp.Query
                             case "StartsWith":
                                 return $"@{fieldName}:{{\"{escapedValue}*\"}}";
                             case "EndsWith":
-                                return $"@{fieldName}:{{\"*{escapedValue}\"}}"; // Tags don't support wildcards, so treat as exact match
+                                return $"@{fieldName}:{{\"*{escapedValue}\"}}";
                             default:
                                 throw new NotSupportedException($"Method {methodCall.Method.Name} is not supported for Tag index");
                         }
@@ -502,8 +502,8 @@ namespace RedisSharp.Query
                         .Replace(":", "\\:")      // Escape colons
                         .Replace("@", "\\@")     // Escape @ symbol
                         .Replace("-", "\\-")     // Escape - symbol
-                        .Replace("_", "\\_")     // Escape - symbol
-                        .Replace(".", "\\.");     // Escape @ symbol
+                        .Replace("_", "\\_")     // Escape _ symbol
+                        .Replace(".", "\\.");     // Escape . symbol
 
         }
     }
