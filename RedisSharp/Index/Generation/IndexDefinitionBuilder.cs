@@ -18,15 +18,20 @@ namespace RedisSharp.Index.Generation
 
             foreach (var entry in analysis.IndexableEntries)
             {
-                schemaDetails.Append(entry.MemberName).Append(":").Append(entry.IndexType).Append(";");
+                schemaDetails.Append(entry.MemberName)
+                             .Append(":")
+                             .Append(entry.IndexType)
+                             .Append(":")
+                             .Append(entry.Sortable)  // Include Sortable status
+                             .Append(";");
 
                 IRediSearchSchemaField field;
 
                 switch (entry.IndexType)
                 {
-                    case IndexType.Tag: field = builder.Tag(entry.MemberName); break;
-                    case IndexType.Text: field = builder.Text(entry.MemberName); break;
-                    case IndexType.Numeric: field = builder.Numeric(entry.MemberName); break;
+                    case IndexType.Tag: field = builder.Tag(entry.MemberName, sortable: entry.Sortable); break;
+                    case IndexType.Text: field = builder.Text(entry.MemberName, sortable: entry.Sortable); break;
+                    case IndexType.Numeric: field = builder.Numeric(entry.MemberName, sortable: entry.Sortable); break;
                     default: continue;
                 }
 

@@ -6,6 +6,7 @@ namespace RedisSharp.Index.Generation
 {
     public struct IndexEntry
     {
+        public bool Sortable { get; set; }
         public string MemberName { get; set; }
         public IndexType IndexType { get; set; }
     }
@@ -71,6 +72,7 @@ namespace RedisSharp.Index.Generation
                     var fullPath = property.Name;
                     var entry = new IndexEntry
                     {
+                        Sortable = indexedAttribute.Sortable,
                         MemberName = fullPath,
                         IndexType = indexType,
                     };

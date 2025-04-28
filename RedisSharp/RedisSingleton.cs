@@ -17,18 +17,21 @@ namespace RedisSharp
         // Cached IDatabase instance
         private static IDatabase _cachedDatabase;
 
-        private RedisSingleton(string host, int port, string password)
+        public static bool BypassUnsafePractices = false;
+        public static bool OutputLogs { get; set; }
+        private RedisSingleton(string host, int port, string password, bool outputLogs = false)
         {
             _connectionMultiplexer = ConnectionMultiplexer.Connect($"{host}:{port},password={password}");
             _server = _connectionMultiplexer.GetServer(host, port);
 
             // Cache the IDatabase instance directly in the constructor
             _cachedDatabase = _connectionMultiplexer.GetDatabase();
+            OutputLogs = outputLogs;
 
             IndexBuilder.InitializeIndexes();
         }
 
-        public static void Initialize(string host, int port, string password)
+        public static void Initialize(string host, int port, string password, bool outputLogs = false)
         {
             if (_instance == null)
             {
@@ -36,7 +39,7 @@ namespace RedisSharp
                 {
                     if (_instance == null)
                     {
-                        _instance = new RedisSingleton(host, port, password);
+                        _instance = new RedisSingleton(host, port, password, outputLogs);
                     }
                 }
             }

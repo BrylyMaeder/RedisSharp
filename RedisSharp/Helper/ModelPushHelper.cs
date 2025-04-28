@@ -47,9 +47,11 @@ namespace RedisSharp.Helper
             {
                 var properties = model.GetType()
                     .GetProperties(BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public)
-                    .Where(p => !typeof(IModelComponent).IsAssignableFrom(p.PropertyType) &&
-                               !typeof(IAsyncModel).IsAssignableFrom(p.PropertyType) &&
-                               p.Name != "Id");
+                    .Where(p => p.CanWrite &&
+                                !typeof(IModelComponent).IsAssignableFrom(p.PropertyType) &&
+                                !typeof(IAsyncModel).IsAssignableFrom(p.PropertyType) &&
+                                p.Name != "Id");
+
 
                 var hashEntries = new List<HashEntry>();
                 var nullKeys = new List<RedisValue>();

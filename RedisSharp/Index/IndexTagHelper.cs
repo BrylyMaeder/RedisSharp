@@ -8,7 +8,7 @@ namespace RedisSharp.Index
     {
         public static IndexType GetIndexType(Type type)
         {
-            if (IsNumericType(type))
+            if (IsNumericType(type) || type.IsEnum)
             {
                 return IndexType.Numeric;
             }
@@ -45,6 +45,7 @@ namespace RedisSharp.Index
                 case TypeCode.Double:
                 case TypeCode.Single:
                 case TypeCode.DateTime:
+                
                     return true;
                 default:
                     return false;

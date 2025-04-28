@@ -13,28 +13,45 @@ namespace RedisSharp.Query
 {
     internal class RedisSearchFunctions
     {
-        internal static async Task<(List<string> DocumentIds, int TotalCount, int TotalPages)> Execute(RedisQuery query,int pageNumber = 0,int pageSize = 1000)
+        internal static async Task<(List<string> DocumentIds, int TotalCount, int TotalPages)> Execute(RedisQuery query, int pageNumber = 0, int pageSize = 1000)
         {
             try
             {
-                int skipCount = Math.Max(0, (pageNumber) * pageSize); // Ensure non-negative skip
-                int takeCount = Math.Max(1, pageSize); // Ensure positive page size
+                int skipCount = Math.Max(0, pageNumber * pageSize);
+                int takeCount = Math.Max(1, pageSize);
 
-                // Build the query if not already done
                 var builtQuery = query.Build();
-
-                // Use a default query if the input query is null or empty
                 string searchQuery = string.IsNullOrWhiteSpace(builtQuery) ? "*" : builtQuery;
 
-                var result = await RedisSingleton.Database.ExecuteAsync(
-                    "FT.SEARCH",
-                    query.IndexName,
-                    searchQuery,
-                    "NOCONTENT", // Only return document IDs, not content
-                    "LIMIT",
-                    skipCount,
-                    takeCount
-                );
+                var commandArgs = new List<object>
+        {
+            query.IndexName,
+            searchQuery,
+            "NOCONTENT",
+            "LIMIT", skipCount, takeCount
+        };
+
+                // Only add SORTBY if SortFields exist
+                if (query.SortFields != null && query.SortFields.Count > 0)
+                {
+                    commandArgs.Add("SORTBY");
+                    foreach (var sortField in query.SortFields)
+                    {
+                        commandArgs.Add(sortField.Key); // Field name
+                        commandArgs.Add(sortField.Value ? "DESC" : "ASC"); // true = DESC, false = ASC
+                    }
+                }
+
+                // DIALECT always goes at the end
+                commandArgs.Add("DIALECT");
+                commandArgs.Add(2);
+
+                if (RedisSingleton.OutputLogs)
+                {
+                    Console.WriteLine("FT.SEARCH " + string.Join(" ", commandArgs));
+                }
+
+                var result = await RedisSingleton.Database.ExecuteAsync("FT.SEARCH", commandArgs.ToArray());
 
                 var resultsArray = (RedisResult[])result;
 
@@ -43,7 +60,7 @@ namespace RedisSharp.Query
                     return (new List<string>(), 0, 0);
                 }
 
-                int totalCount = Convert.ToInt32(resultsArray[0]); // First element is the total count
+                int totalCount = Convert.ToInt32(resultsArray[0]);
                 int totalPages = (int)Math.Ceiling((double)totalCount / pageSize);
 
                 var documentIds = new List<string>();
@@ -60,6 +77,9 @@ namespace RedisSharp.Query
                 return (new List<string>(), 0, 0);
             }
         }
+
+
+
 
 
         internal static List<string> GetSelectedFields<TModel>(Expression<Func<TModel, object>> expression)
@@ -109,6 +129,10 @@ namespace RedisSharp.Query
                     redisQuery.Add(selectedFields.Count);
                     redisQuery.AddRange(selectedFields);
                 }
+
+                redisQuery.Add("DIALECT");
+                redisQuery.Add(2);
+
 
                 var result = await RedisSingleton.Database.ExecuteAsync("FT.SEARCH", redisQuery.ToArray());
                 var resultsArray = (RedisResult[])result;

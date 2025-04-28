@@ -7,7 +7,6 @@ using System.Threading.Tasks;
 using RedisSharp.Extensions;
 using StackExchange.Redis;
 using RedisSharp.Contracts;
-using RedisSharp.Attributes;
 
 namespace RedisSharp.Helper
 {
@@ -67,11 +66,9 @@ namespace RedisSharp.Helper
                         var property = modelData.Properties[i].Property;
                         var value = values[i];
 
-                        if (!value.IsNull)
+                        if (!value.IsNull && property.CanWrite)
                         {
-                            // Convert Redis value to property type and set it
                             object convertedValue = RedisConverters.DeserializeFromRedis(value, property.PropertyType);
-                            // Use the stored instance instead of ReflectedType
                             property.SetValue(modelData.Instance, convertedValue);
                         }
                     }

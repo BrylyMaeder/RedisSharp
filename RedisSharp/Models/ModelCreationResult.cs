@@ -21,15 +21,12 @@ namespace RedisSharp.Models
             };
         }
 
-        public static BulkModelCreationResult<TModel> Failed(string message = "Bulk creation failed")
+        public static BulkModelCreationResult<TModel> Failed(IEnumerable<TModel> models, string message = "Bulk creation failed") => new BulkModelCreationResult<TModel>
         {
-            return new BulkModelCreationResult<TModel>
-            {
-                Succeeded = false,
-                Message = message,
-                Models = Enumerable.Empty<TModel>()
-            };
-        }
+            Succeeded = false,
+            Message = message,
+            Models = models ?? Enumerable.Empty<TModel>(),
+        };
     }
 
     public struct ModelCreationResult<TModel> where TModel : IAsyncModel

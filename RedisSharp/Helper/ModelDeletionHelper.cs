@@ -1,5 +1,4 @@
-﻿using RedisSharp.Attributes;
-using RedisSharp.Contracts;
+﻿using RedisSharp.Contracts;
 using StackExchange.Redis;
 using System;
 using System.Collections.Generic;

@@ -9,7 +9,9 @@ namespace RedisSharp.Query
     public class RedisQuery 
     {
         public readonly List<string> Conditions;
+        
         public readonly string IndexName;
+        public Dictionary<string, bool> SortFields { get; set; }
 
         public string Build()
         {
@@ -25,6 +27,7 @@ namespace RedisSharp.Query
         {
             IndexName = indexName;
             Conditions = new List<string>();
+            SortFields = new Dictionary<string, bool>();
         }
     }
     public class RedisQuery<TModel> : RedisQuery where TModel : IAsyncModel
@@ -32,6 +35,31 @@ namespace RedisSharp.Query
         public RedisQuery(string indexName) : base(indexName)
         {
 
+        }
+
+        public RedisQuery<TModel> SortBy(params SortField<TModel>[] sortFields)
+        {
+            foreach (var sortField in sortFields)
+            {
+                var fieldName = GetFieldNameFromSelector(sortField.Selector);
+                SortFields[fieldName] = sortField.Descending;
+            }
+            return this;
+        }
+
+        private string GetFieldNameFromSelector(Expression<Func<TModel, object>> selector)
+        {
+            if (selector.Body is MemberExpression memberExpression)
+            {
+                return memberExpression.Member.Name;
+            }
+
+            if (selector.Body is UnaryExpression unaryExpression && unaryExpression.Operand is MemberExpression unaryMember)
+            {
+                return unaryMember.Member.Name;
+            }
+
+            throw new NotSupportedException("Expression must resolve to a member");
         }
 
         public RedisQuery<TModel> Where(Expression<Func<TModel, bool>> predicate)
@@ -50,13 +78,24 @@ namespace RedisSharp.Query
                     return ParseBinaryExpression(binary, parameter);
 
                 case UnaryExpression unary when unary.NodeType == ExpressionType.Not:
-                    // Handle negation (e.g., !IsLegendary)
                     return HandleUnaryNegation(unary, parameter);
+
+                case UnaryExpression unary when unary.NodeType == ExpressionType.Convert:
+                    var convertedValue = EvaluateExpression(unary.Operand, parameter);
+                    if (convertedValue != null && convertedValue.GetType().IsEnum)
+                    {
+                        return Convert.ToInt32(convertedValue).ToString();
+                    }
+                    return convertedValue?.ToString() ?? "null";
 
                 case MethodCallExpression methodCall:
                     return ParseMethodCallExpression(methodCall, parameter);
 
                 case ConstantExpression constant:
+                    if (constant.Value != null && constant.Value.GetType().IsEnum)
+                    {
+                        return Convert.ToInt32(constant.Value).ToString();
+                    }
                     return constant.Value?.ToString() ?? "null";
 
                 case MemberExpression member:
@@ -84,30 +123,56 @@ namespace RedisSharp.Query
 
         private string HandleMemberExpression(MemberExpression member, ParameterExpression parameter)
         {
-            // Get the field name
-            var fieldName = member.Member.Name;
-
-            // Check if the member represents a boolean property (like IsLegendary)
-            var propertyInfo = member.Member as System.Reflection.PropertyInfo;
-            if (propertyInfo != null && propertyInfo.PropertyType == typeof(bool))
+            // Ensure the member is part of the parameter (e.g., s.MyEnum)
+            if (member.Expression == parameter)
             {
-                // For boolean properties, we assume the field is checked against `true` if no explicit comparison is made
-                return $"@{fieldName}:{{True}}";  // Check if the property is true
+                var fieldName = member.Member.Name;
+                var propertyInfo = member.Member as PropertyInfo;
+
+                if (propertyInfo != null)
+                {
+                    // Check if the property is an enum
+                    if (propertyInfo.PropertyType.IsEnum)
+                    {
+                        // Treat as a numeric field in Redis query (e.g., @MyEnum)
+                        return $"@{fieldName}";
+                    }
+                    // Handle boolean properties
+                    if (propertyInfo.PropertyType == typeof(bool))
+                    {
+                        return $"@{fieldName}:{{True}}";
+                    }
+                }
+                // Fallback for other types
+                return $"@{fieldName}";
             }
 
-            // Handle other types of members (non-boolean properties)
-            return $"@{fieldName}:{{{member.ToString()}}}";
+            // Evaluate constant or static members
+            var value = EvaluateExpression(member, parameter);
+            if (value != null && value.GetType().IsEnum)
+            {
+                return Convert.ToInt32(value).ToString();
+            }
+            return value?.ToString() ?? "null";
         }
 
 
         private string ParseBinaryExpression(BinaryExpression binary, ParameterExpression parameter)
         {
             string left;
-            IndexType indexType = IndexType.Auto; // Default to Auto
-            if (binary.Left is MemberExpression member)
+            IndexType indexType = IndexType.Auto;
+
+            // Handle Convert expressions on the left side
+            Expression leftExpression = binary.Left;
+            if (leftExpression is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
+            {
+                leftExpression = unary.Operand;
+            }
+
+            if (leftExpression is MemberExpression member)
             {
                 left = GetFieldName(member);
-                var propertyInfo = member.Member as System.Reflection.PropertyInfo;
+                var propertyInfo = member.Member as PropertyInfo;
                 if (propertyInfo != null)
                 {
                     var indexedAttr = propertyInfo.GetCustomAttribute<IndexedAttribute>();
@@ -119,17 +184,31 @@ namespace RedisSharp.Query
                 left = ParseExpression(binary.Left, parameter);
             }
 
-            // ✅ Handle logical AND (`&&`) and OR (`||`)
+            // Handle logical AND/OR
             if (binary.NodeType == ExpressionType.AndAlso || binary.NodeType == ExpressionType.OrElse)
             {
                 string leftExpr = ParseExpression(binary.Left, parameter);
                 string rightExpr = ParseExpression(binary.Right, parameter);
                 return binary.NodeType == ExpressionType.AndAlso
-                    ? "(" + leftExpr + " " + rightExpr + ")"  // Implicit AND
-                    : "(" + leftExpr + " | " + rightExpr + ")"; // Explicit OR
+                    ? "(" + leftExpr + " " + rightExpr + ")"
+                    : "(" + leftExpr + " | " + rightExpr + ")";
             }
 
             object rightValue = EvaluateExpression(binary.Right, parameter);
+
+            // Handle enums and Convert expressions explicitly
+            if (binary.Right is UnaryExpression convertExpr && convertExpr.NodeType == ExpressionType.Convert)
+            {
+                rightValue = EvaluateExpression(convertExpr.Operand, parameter);
+                if (rightValue != null && rightValue.GetType().IsEnum)
+                {
+                    rightValue = Convert.ToInt32(rightValue);
+                }
+            }
+            else if (rightValue != null && rightValue.GetType().IsEnum)
+            {
+                rightValue = Convert.ToInt32(rightValue);
+            }
 
             if (rightValue is bool booleanValue)
             {
@@ -156,7 +235,6 @@ namespace RedisSharp.Query
                 return "@" + left + ":{" + paramExprRight.Name + "}";
             }
 
-            // ✅ Distinguish between Auto (Text) and Auto (Numeric)
             bool isNumeric = rightValue is int || rightValue is double || rightValue is float || rightValue is long || rightValue is decimal;
 
             if (isNumeric || indexType == IndexType.Numeric)
@@ -181,11 +259,9 @@ namespace RedisSharp.Query
                 }
             }
 
-            // ✅ Handle string-based indexes (Text/Tag)
             if (rightValue is string textValue)
             {
                 string escapedValue = EscapeValue(textValue);
-
                 if (indexType == IndexType.Text || (indexType == IndexType.Auto && !isNumeric))
                 {
                     switch (binary.NodeType)
@@ -212,7 +288,24 @@ namespace RedisSharp.Query
                 }
             }
 
-            throw new NotSupportedException("Cannot process value " + rightValue + " with index type " + indexType);
+            // Log for debugging
+            throw new NotSupportedException($"Cannot process value '{rightValue}' (type: {(rightValue?.GetType()?.Name ?? "null")}) with index type {indexType}");
+        }
+
+        private string GetFieldName(Expression expression)
+        {
+            // Handle Convert expressions
+            if (expression is UnaryExpression unary && unary.NodeType == ExpressionType.Convert)
+            {
+                expression = unary.Operand;
+            }
+
+            if (expression is MemberExpression member)
+            {
+                return member.Member.Name;
+            }
+
+            throw new NotSupportedException("Expression must resolve to a property");
         }
 
 
@@ -276,82 +369,116 @@ namespace RedisSharp.Query
             throw new NotSupportedException($"Method {methodCall.Method.Name} is not supported");
         }
 
-
-        private string GetFieldName(Expression expression)
-        {
-            if (expression is MemberExpression member)
-                return member.Member.Name;
-
-            throw new NotSupportedException("Left side of expression must be a property");
-        }
-
         private object EvaluateExpression(Expression expression, ParameterExpression parameter)
         {
             try
             {
                 if (expression is ConstantExpression constant)
+                {
+                    if (constant.Value != null && constant.Value.GetType().IsEnum)
+                    {
+                        return Convert.ToInt32(constant.Value);
+                    }
                     return constant.Value;
+                }
 
                 if (expression is MemberExpression member)
                 {
-                    if (member.Expression == null) // Handle static members
+                    // Avoid evaluating parameter properties dynamically
+                    if (member.Expression == parameter)
+                    {
+                        // Return null or defer evaluation; handled in ParseExpression
+                        return null;
+                    }
+
+                    if (member.Expression == null) // Static members
                     {
                         if (member.Member.DeclaringType == typeof(DateTime) && member.Member.Name == "Now")
-                            return DateTime.Now; // Special handling for DateTime.Now
+                            return DateTime.Now;
 
-                        var staticField = member.Member as System.Reflection.FieldInfo;
+                        var staticField = member.Member as FieldInfo;
                         if (staticField != null && staticField.IsStatic)
-                            return staticField.GetValue(null);
+                        {
+                            var value = staticField.GetValue(null);
+                            if (value != null && value.GetType().IsEnum)
+                            {
+                                return Convert.ToInt32(value);
+                            }
+                            return value;
+                        }
 
-                        var staticProp = member.Member as System.Reflection.PropertyInfo;
+                        var staticProp = member.Member as PropertyInfo;
                         if (staticProp != null && staticProp.GetMethod.IsStatic)
-                            return staticProp.GetValue(null);
+                        {
+                            var value = staticProp.GetValue(null);
+                            if (value != null && value.GetType().IsEnum)
+                            {
+                                return Convert.ToInt32(value);
+                            }
+                            return value;
+                        }
                     }
 
                     var obj = member.Expression != null ? EvaluateExpression(member.Expression, parameter) : null;
-                    var field = member.Member as System.Reflection.FieldInfo;
+                    var field = member.Member as FieldInfo;
                     if (field != null)
-                        return field.GetValue(obj);
+                    {
+                        var value = field.GetValue(obj);
+                        if (value != null && value.GetType().IsEnum)
+                        {
+                            return Convert.ToInt32(value);
+                        }
+                        return value;
+                    }
 
-                    var prop = member.Member as System.Reflection.PropertyInfo;
+                    var prop = member.Member as PropertyInfo;
                     if (prop != null)
-                        return prop.GetValue(obj);
+                    {
+                        var value = prop.GetValue(obj);
+                        if (value != null && value.GetType().IsEnum)
+                        {
+                            return Convert.ToInt32(value);
+                        }
+                        return value;
+                    }
 
                     throw new NotSupportedException("Unsupported member type");
                 }
 
-                // ✅ Fix for MethodCallExpression
                 if (expression is MethodCallExpression methodCall)
                 {
-                    // Evaluate the instance (object) on which the method is called
                     object instance = null;
                     if (methodCall.Object != null)
                     {
                         instance = EvaluateExpression(methodCall.Object, parameter);
                     }
 
-                    // Evaluate all method arguments
                     var arguments = new object[methodCall.Arguments.Count];
                     for (int i = 0; i < methodCall.Arguments.Count; i++)
                     {
                         arguments[i] = EvaluateExpression(methodCall.Arguments[i], parameter);
                     }
 
-                    // Invoke the method dynamically
-                    return methodCall.Method.Invoke(instance, arguments);
+                    var result = methodCall.Method.Invoke(instance, arguments);
+                    if (result != null && result.GetType().IsEnum)
+                    {
+                        return Convert.ToInt32(result);
+                    }
+                    return result;
                 }
 
-                // Handle boolean literals explicitly
-                if (expression is ConstantExpression boolConstant && boolConstant.Value is bool)
-                    return boolConstant.Value;
-
-                // Compile the expression with the parameter, but don't invoke it with a value since we're just parsing
                 var lambda = Expression.Lambda(expression, parameter);
                 var compiled = lambda.Compile();
 
-                // If it's a simple value we can evaluate immediately
                 if (lambda.Parameters.Count == 0)
-                    return compiled.DynamicInvoke();
+                {
+                    var result = compiled.DynamicInvoke();
+                    if (result != null && result.GetType().IsEnum)
+                    {
+                        return Convert.ToInt32(result);
+                    }
+                    return result;
+                }
 
                 return null;
             }
@@ -360,8 +487,6 @@ namespace RedisSharp.Query
                 throw new InvalidOperationException($"Failed to evaluate expression: {expression}", ex);
             }
         }
-
-
 
         private long ToUnixSeconds(DateTime dateTime)
         {
@@ -374,6 +499,8 @@ namespace RedisSharp.Query
                         .Replace(" ", "\\ ")      // Escape spaces
                         .Replace(":", "\\:")      // Escape colons
                         .Replace("@", "\\@")     // Escape @ symbol
+                        .Replace("-", "\\-")     // Escape - symbol
+                        .Replace("_", "\\_")     // Escape - symbol
                         .Replace(".", "\\.");     // Escape @ symbol
 
         }

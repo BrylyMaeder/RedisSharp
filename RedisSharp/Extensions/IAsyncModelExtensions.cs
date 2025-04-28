@@ -75,6 +75,20 @@ namespace RedisSharp
             return models;  // Return the hydrated collection of models
         }
 
+        public static async Task<List<TModel>> HydrateAsync<TModel>(this Task<List<TModel>> modelsTask)
+    where TModel : IAsyncModel
+        {
+            if (modelsTask == null) return null;
+
+            var models = await modelsTask;
+            if (models == null || models.Count == 0) return models;
+
+            // Reuse existing hydration logic for IEnumerable
+            await ModelHydrationHelper.HydrateAsync(models);
+            return models;
+        }
+
+
 
 
         public static string GetKey(this IAsyncModel document)
@@ -137,23 +151,23 @@ namespace RedisSharp
         }
 
         public static async Task<PushResult> PushAsync<TModel>(
-            this TModel entity,
-            Expression<Func<TModel, object>> selector,
-            params Expression<Func<TModel, object>>[] additionalSelectors)
+            this TModel entity, params Expression<Func<TModel, object>>[] selectors)
             where TModel : IAsyncModel
         {
-            var allSelectors = new[] { selector }.Concat(additionalSelectors).ToArray();
-            return await ModelPushHelper.PushAsync(entity, allSelectors);
+            if (!RedisSingleton.BypassUnsafePractices && selectors == null || !RedisSingleton.BypassUnsafePractices && selectors.Length == 0)
+                throw new ArgumentException("At least one selector must be used on PushAsync.");
+
+            return await ModelPushHelper.PushAsync(entity, selectors);
         }
 
         public static async Task<PushResult> PushAsync<TModel>(
-            this IEnumerable<TModel> entities,
-            Expression<Func<TModel, object>> selector,
-            params Expression<Func<TModel, object>>[] additionalSelectors)
+            this IEnumerable<TModel> entities, params Expression<Func<TModel, object>>[] selectors)
             where TModel : IAsyncModel
         {
-            var allSelectors = new[] { selector }.Concat(additionalSelectors).ToArray();
-            return await ModelPushHelper.PushAsync(entities, allSelectors);
+            if (!RedisSingleton.BypassUnsafePractices && selectors == null || !RedisSingleton.BypassUnsafePractices && selectors.Length == 0)
+                throw new ArgumentException("At least one selector must be used on PushAsync.");
+
+            return await ModelPushHelper.PushAsync(entities, selectors);
         }
 
         public static async Task PullAsync<TModel>(this TModel entity, params Expression<Func<TModel, object>>[] selectors) where TModel : IAsyncModel

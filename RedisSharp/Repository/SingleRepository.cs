@@ -52,6 +52,7 @@ namespace RedisSharp
             }
 
             var newModel = ModelFactory.Create<TModel>(id);
+            
 
             return await CreateAsync(newModel);
         }

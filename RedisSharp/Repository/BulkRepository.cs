@@ -18,8 +18,9 @@ namespace RedisSharp
         {
             if (models == null || !models.Any() || models.Any(m => string.IsNullOrEmpty(m.Id)))
             {
-                return BulkModelCreationResult<TModel>.Failed("Invalid models: missing ID or empty list.");
+                return BulkModelCreationResult<TModel>.Failed(null, "Invalid models: missing ID or empty list.");
             }
+
 
             var db = RedisSingleton.Database;
             var test = models.FirstOrDefault();
@@ -35,7 +36,7 @@ namespace RedisSharp
 
             if (existingModels.Any())
             {
-                return BulkModelCreationResult<TModel>.Failed($"The following models already exist: {string.Join(", ", existingModels)}");
+                return BulkModelCreationResult<TModel>.Failed((IEnumerable<TModel>)existingModels, $"The following models already exist: {string.Join(", ", existingModels)}");
             }
 
             // Assign CreatedAt to UTC now if it's default
@@ -45,6 +46,8 @@ namespace RedisSharp
                 {
                     model.CreatedAt = DateTime.UtcNow;
                 }
+
+                ModelHelper.InstantiateNestedModels(model);
             }
 
             var result = await ModelPushHelper.PushAsync(models);
@@ -53,7 +56,7 @@ namespace RedisSharp
             {
                 return BulkModelCreationResult<TModel>.Success(models);
             }
-            else return BulkModelCreationResult<TModel>.Failed(result.Message);
+            else return BulkModelCreationResult<TModel>.Failed(null, result.Message);
         }
 
 

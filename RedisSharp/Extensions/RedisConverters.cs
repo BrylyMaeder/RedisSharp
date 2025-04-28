@@ -54,7 +54,7 @@ namespace RedisSharp.Extensions
                 case Guid guid:
                     return guid.ToString();
                 case Enum enumValue:
-                    return enumValue.ToString();
+                    return Convert.ToInt64(enumValue).ToString();
             }
 
             // Serialize complex/custom classes to JSON
@@ -127,8 +127,14 @@ namespace RedisSharp.Extensions
             }
             if (targetType.IsEnum)
             {
-                return Enum.Parse(targetType, value);
+                if (long.TryParse(value, out var enumLong))
+                {
+                    return Enum.ToObject(targetType, enumLong);
+                }
+
+                return 0;
             }
+
 
             // Deserialize complex/custom classes from JSON
             if (targetType.IsClass || (targetType.IsValueType && !targetType.IsPrimitive))
