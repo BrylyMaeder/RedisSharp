@@ -38,6 +38,7 @@ results = await query23.ToListAsync();
 //var results = await RedisRepository.Query<SampleModel>().ToListAsync();
 
 
-var testQuery = await RedisRepository.Query<SampleModel>(s => s.Number == 5).SortBy(sortFields: new SortField<SampleModel>(s => s.CreatedAt, true)).ToListAsync().HydrateAsync();
+var testQuery = await RedisRepository.Query<SampleModel>(s => s.Number == 5).SortBy(sortFields: new SortField<SampleModel>(s => s.CreatedAt, true)).WithHydration().ToListAsync();
+
 
 Thread.Sleep(-1);

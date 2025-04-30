@@ -9,6 +9,11 @@ namespace RedisSharp.Factory
 {
     public static class ModelFactory
     {
+        public static IEnumerable<TModel> CreateMany<TModel>(IEnumerable<string> ids) where TModel : IAsyncModel
+        {
+            return ids.Select(id => Create<TModel>(id));
+        }
+
         public static TModel Create<TModel>(string id) where TModel : IAsyncModel
         {
             return (TModel)Create(typeof(TModel), id);

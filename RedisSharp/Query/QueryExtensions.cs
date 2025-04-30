@@ -14,7 +14,7 @@ namespace RedisSharp
         {
             var results = await RedisSearchFunctions.Execute(query, page, pageSize);
 
-            var documents = (List<TModel>)await RedisRepository.LoadManyAsync<TModel>(results.DocumentIds);
+            var documents = (List<TModel>)ModelFactory.CreateMany<TModel>(results.DocumentIds);
 
             return (documents, results.TotalCount, results.TotalPages);
         }
@@ -31,7 +31,7 @@ namespace RedisSharp
                 return new List<TModel>(); // Return an empty list if no document IDs
             }
 
-            var loadedItems = await RedisRepository.LoadManyAsync<TModel>(documentIds);
+            var loadedItems = ModelFactory.CreateMany<TModel>(documentIds);
 
             // Convert to a List<TModel> if it's not already a List<TModel>
             return loadedItems.ToList();
@@ -58,36 +58,6 @@ namespace RedisSharp
         {
             var results = await RedisSearchFunctions.Execute(query, page, pageSize);
             return results.DocumentIds;
-        }
-
-        public static async Task<List<TModel>> SelectAsync<TModel>(
-            this RedisQuery<TModel> query,
-            params Expression<Func<TModel, object>>[] propertyExpressions)
-            where TModel : IAsyncModel, new()
-        {
-            // Extract the fields from the expressions
-            var selectedFields = propertyExpressions
-                .SelectMany(expr => RedisSearchFunctions.GetSelectedFields(expr))
-                .Distinct()
-                .ToList();
-
-            var results = await RedisSearchFunctions.SelectAsync<TModel>(query, selectedFields, 0, 1000);
-
-            return results.models;
-        }
-
-        public static async Task<(List<TModel> Results, int TotalCount, int TotalPages)> PagedSelectAsync<TModel>(
-            this RedisQuery<TModel> query, int pageNumber, int pageSize,
-            params Expression<Func<TModel, object>>[] propertyExpressions)
-            where TModel : IAsyncModel, new()
-        {
-            // Extract the fields from the expressions
-            var selectedFields = propertyExpressions
-                .SelectMany(expr => RedisSearchFunctions.GetSelectedFields(expr))
-                .Distinct()
-                .ToList();
-
-            return await RedisSearchFunctions.SelectAsync<TModel>(query, selectedFields, pageNumber, pageSize);
         }
     }
 }

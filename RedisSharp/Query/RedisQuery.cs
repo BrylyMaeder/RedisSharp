@@ -14,6 +14,7 @@ namespace RedisSharp.Query
         public readonly string IndexName;
         public Dictionary<string, bool> SortFields { get; set; }
 
+        public bool Hydrate { get; set; }
         public string Build()
         {
             if (Conditions.Count == 0)
@@ -36,6 +37,13 @@ namespace RedisSharp.Query
         public RedisQuery(string indexName) : base(indexName)
         {
 
+        }
+
+
+        public RedisQuery<TModel> WithHydration()
+        {
+            Hydrate = true;
+            return this;
         }
 
         public RedisQuery<TModel> SortBy(params SortField<TModel>[] sortFields)
