@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq.Expressions;
 using System.Reflection;
+using System.Text.RegularExpressions;
 
 namespace RedisSharp.Query
 {
@@ -357,11 +358,11 @@ namespace RedisSharp.Query
                         switch (methodCall.Method.Name)
                         {
                             case "Contains":
-                                return $"@{fieldName}:{{\"*{escapedValue}*\"}}";
+                                return $"@{fieldName}:{{*{escapedValue}*}}";
                             case "StartsWith":
-                                return $"@{fieldName}:{{\"{escapedValue}*\"}}";
+                                return $"@{fieldName}:{{{escapedValue}*}}";
                             case "EndsWith":
-                                return $"@{fieldName}:{{\"*{escapedValue}\"}}";
+                                return $"@{fieldName}:{{*{escapedValue}}}";
                             default:
                                 throw new NotSupportedException($"Method {methodCall.Method.Name} is not supported for Tag index");
                         }
@@ -497,13 +498,8 @@ namespace RedisSharp.Query
 
         private string EscapeValue(string value)
         {
-            return value.Replace("\"", "\\\"")    // Escape quotes
-                        .Replace(" ", "\\ ")      // Escape spaces
-                        .Replace(":", "\\:")      // Escape colons
-                        .Replace("@", "\\@")     // Escape @ symbol
-                        .Replace("-", "\\-")     // Escape - symbol
-                        .Replace("_", "\\_")     // Escape _ symbol
-                        .Replace(".", "\\.");     // Escape . symbol
+
+            return Regex.Replace(value, @"([\\"" :@\-_.?,!'; &=+#$%^*~`|{}\[\]\(\)<>])", "\\$1"); // Escape special characters
 
         }
     }
