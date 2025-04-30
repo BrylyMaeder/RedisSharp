@@ -20,7 +20,7 @@ namespace RedisSharp.Query
 
             return Conditions.Count == 1
                 ? Conditions[0]
-                : $"'{string.Join(" ", Conditions)}'";
+                : $"{string.Join(" ", Conditions)}";
         }
 
         public RedisQuery(string indexName)
